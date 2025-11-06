@@ -6,6 +6,7 @@
   <title>SOP Builder – Upload to Standard Format</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     .a4 { aspect-ratio: 210 / 297; }
     .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,.08); }
@@ -15,17 +16,20 @@
       background-position: 0 0, 12px 12px;
       background-size: 24px 24px;
     }
+    /* Uniform media frame (4:3) for all step images/videos */
+    .media-frame { position: relative; width: 100%; }
+    .media-frame::before { content: ""; display: block; padding-top: 75%; } /* 4:3 ratio */
+    .media-frame > .media-fit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   </style>
 </head>
 <body class="min-h-screen bg-stone-100">
   <div class="max-w-7xl mx-auto p-6 lg:p-10">
     <header class="mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold text-stone-800">SOP Builder → Standardised Template</h1>
-      <p class="text-stone-600">Create SOP pages with steps. Each step has media (image/video) + text. Export the result as a PNG.</p>
+      <h1 class="text-2xl md:text-3xl font-bold text-stone-800">SOP Template Creator</h1>
+      <p class="text-stone-600">This is a template file for SOP creation.</p>
     </header>
 
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <!-- INPUT PANEL -->
       <form id="inputForm" class="bg-white rounded-2xl shadow-soft p-5 border border-stone-200">
         <h2 class="text-lg font-semibold mb-4">Input</h2>
 
@@ -48,7 +52,6 @@
           </label>
         </div>
 
-        <!-- Steps Builder -->
         <div class="mt-6">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-semibold">Steps</h3>
@@ -63,20 +66,16 @@
         </div>
       </form>
 
-      <!-- OUTPUT PANEL -->
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold">Output Template</h2>
-          <button id="downloadBtn" class="px-4 py-2 rounded-xl bg-emerald-700 text-white hover:bg-emerald-600">Download PNG</button>
+          <button id="downloadBtn" class="px-4 py-2 rounded-xl bg-emerald-700 text-white hover:bg-emerald-600">Download PDF</button>
         </div>
 
-        <!-- SOP Card A4 -->
         <div id="card" class="a4 relative overflow-hidden rounded-2xl border border-stone-300 bg-[#f7f4ea] washi shadow-soft">
-          <!-- Top banner -->
           <div class="absolute inset-x-0 top-0 h-6 bg-stone-800"></div>
 
           <div class="p-6 md:p-8 space-y-5">
-            <!-- Header -->
             <div class="flex items-start gap-4">
               <div class="h-12 w-12 rounded-xl bg-stone-800"></div>
               <div class="flex-1">
@@ -89,11 +88,9 @@
               </div>
             </div>
 
-            <!-- Steps Rendered Here -->
             <div id="outSteps" class="space-y-6"></div>
           </div>
 
-          <!-- Bottom banner -->
           <div class="absolute inset-x-0 bottom-0 h-6 bg-stone-800"></div>
         </div>
       </div>
@@ -106,8 +103,6 @@
 
   <script>
     const el = (id) => document.getElementById(id);
-
-    // --- Step UI builder ---
     let stepCount = 0;
     const stepsContainer = el('stepsContainer');
 
@@ -121,7 +116,7 @@
         <div class="flex items-start justify-between gap-3">
           <div class="flex items-center gap-2">
             <div class="h-8 w-8 flex items-center justify-center rounded-full bg-stone-800 text-white text-sm font-bold">${stepCount}</div>
-            <div class="text-sm text-stone-600">Step ${stepCount}</div>
+            <input type="text" class="step-title border-b border-stone-300 focus:border-stone-400 focus:ring-0 text-sm px-2 py-1 w-48" placeholder="Step ${stepCount} Title" />
           </div>
           <button type="button" class="remove-step text-sm text-stone-600 hover:text-red-600">Remove</button>
         </div>
@@ -131,7 +126,7 @@
             <input type="file" accept="image/*,video/*" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-stone-800 file:text-white" />
           </label>
           <label class="block md:col-span-2">
-            <span class="text-sm text-stone-600">Text for Step ${stepCount}</span>
+            <span class="text-sm text-stone-600">Description</span>
             <textarea rows="3" class="mt-1 w-full rounded-xl border-stone-300 focus:border-stone-400 focus:ring-stone-400" placeholder="Describe what to do in this step..."></textarea>
           </label>
         </div>
@@ -150,14 +145,21 @@
       blocks.forEach((block, idx) => {
         block.dataset.index = String(idx + 1);
         block.querySelector('.h-8.w-8').textContent = String(idx + 1);
-        block.querySelector('.text-sm.text-stone-600').textContent = `Step ${idx + 1}`;
-        block.querySelector('label:nth-child(2) span').textContent = `Text for Step ${idx + 1}`;
+        const titleInput = block.querySelector('.step-title');
+        if (!titleInput.value.startsWith('Step')) {
+          titleInput.placeholder = `Step ${idx + 1} Title`;
+        }
       });
       stepCount = blocks.length;
     }
 
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB per image recommended
     const readMedia = (file) => new Promise((resolve) => {
       if (!file) return resolve(null);
+      // Basic size guard. Videos are allowed but won't be embedded in PDF; images >10MB may cause memory issues.
+      if (!file.type.startsWith('video') && file.size > MAX_IMAGE_BYTES) {
+        alert(`Image "${file.name}" is ${(file.size/1024/1024).toFixed(1)} MB. For smooth PDF export, keep each image ≤ 10 MB or resize to ≤ 2000px wide.`);
+      }
       const reader = new FileReader();
       reader.onload = (e) => resolve({ url: e.target.result, type: file.type.startsWith('video') ? 'video' : 'image' });
       reader.readAsDataURL(file);
@@ -183,31 +185,40 @@
       const blocks = [...document.querySelectorAll('.step-block')];
       for (let i = 0; i < blocks.length; i++) {
         const idx = i + 1;
+        const titleInput = blocks[i].querySelector('.step-title');
         const fileInput = blocks[i].querySelector('input[type="file"]');
         const textInput = blocks[i].querySelector('textarea');
         const media = await readMedia(fileInput.files[0]);
+        const title = titleInput.value || `Step ${idx}`;
         const text = textInput.value || '';
 
         const row = document.createElement('div');
-        row.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-start';
+        row.className = 'space-y-2';
+        const header = document.createElement('h4');
+        header.className = 'font-semibold text-stone-800';
+        header.textContent = title;
+        row.appendChild(header);
+
+        const inner = document.createElement('div');
+        inner.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-start';
 
         const num = document.createElement('div');
         num.className = 'md:col-span-1';
         num.innerHTML = `<div class='h-8 w-8 flex items-center justify-center rounded-full bg-stone-800 text-white font-bold'>${idx}</div>`;
-        row.appendChild(num);
+        inner.appendChild(num);
 
         const mediaCol = document.createElement('div');
         mediaCol.className = 'md:col-span-4';
         const mediaWrap = document.createElement('div');
-        mediaWrap.className = 'rounded-xl overflow-hidden border border-stone-300 bg-white';
+        mediaWrap.className = 'rounded-xl overflow-hidden border border-stone-300 bg-white media-frame';
         if (media) {
           if (media.type === 'video') {
             const v = document.createElement('video');
-            v.src = media.url; v.controls = true; v.className = 'w-full h-40 object-cover';
+            v.src = media.url; v.controls = true; v.className = 'media-fit';
             mediaWrap.appendChild(v);
           } else {
             const img = document.createElement('img');
-            img.src = media.url; img.alt = `Step ${idx}`; img.className = 'w-full h-40 object-cover';
+            img.src = media.url; img.alt = title || `Step ${idx}`; img.className = 'media-fit';
             mediaWrap.appendChild(img);
           }
         } else {
@@ -215,16 +226,17 @@
           mediaWrap.textContent = 'No media';
         }
         mediaCol.appendChild(mediaWrap);
-        row.appendChild(mediaCol);
+        inner.appendChild(mediaCol);
 
         const textCol = document.createElement('div');
         textCol.className = 'md:col-span-7';
         const textBox = document.createElement('div');
         textBox.className = 'bg-white/70 rounded-2xl p-4 border border-stone-200';
         textBox.textContent = text || '—';
-        row.appendChild(textCol);
         textCol.appendChild(textBox);
+        inner.appendChild(textCol);
 
+        row.appendChild(inner);
         outSteps.appendChild(row);
       }
     }
@@ -241,9 +253,17 @@
       el('outSteps').innerHTML = '';
     }
 
-    async function downloadPNG() {
+    async function downloadPDF() {
       const node = el('card');
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: null });
+      // Render at high scale to keep images crisp. PNG is lossless, so no extra compression.
+      const canvas = await html2canvas(node, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+      pdf.save(`sop-${Date.now()}.pdf`);
+    });
       const link = document.createElement('a');
       link.download = `sop-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -255,7 +275,7 @@
       el('addStepBtn').addEventListener('click', () => addStep());
       el('applyBtn').addEventListener('click', applyToTemplate);
       el('resetBtn').addEventListener('click', resetAll);
-      el('downloadBtn').addEventListener('click', downloadPNG);
+      el('downloadBtn').addEventListener('click', downloadPDF);
     });
   </script>
 </body>
