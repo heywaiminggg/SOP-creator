@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SOP Builder – Clean Word Style (Final)</title>
+  <title>SOP Builder – Full Page Word Style</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,9 +19,10 @@
       min-height: 297mm;
       background: #ffffff;
       margin: 0 auto;
-      padding: 25mm 19mm; /* Word moderate margins */
+      padding: 19mm; /* Word normal margins */
       box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
       font-family: "Calibri", Arial, sans-serif;
+      font-size: 12pt;
     }
     .media-frame { position: relative; width: 100%; }
     .media-frame::before { content: ""; display: block; padding-top: 75%; } /* 4:3 ratio */
@@ -71,7 +72,7 @@
     <!-- RIGHT PANEL -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Preview (Word Style)</h2>
+        <h2 class="text-lg font-semibold">Preview (Word Style – Full Page)</h2>
         <button id="downloadBtn" class="px-4 py-2 rounded-md bg-emerald-700 text-white hover:bg-emerald-600">Download PDF</button>
       </div>
 
@@ -87,7 +88,7 @@
 
           <div id="outTags" class="flex flex-wrap gap-1 text-[10pt] text-stone-600"></div>
           <hr class="border-t border-stone-300 my-3" />
-          <div id="outSteps" class="space-y-4"></div>
+          <div id="outSteps" class="space-y-5"></div>
         </div>
       </div>
     </div>
@@ -132,12 +133,10 @@
           </label>
         </div>
       `;
-
       wrap.querySelector('.remove-step').onclick = () => {
         wrap.remove();
         renumberSteps();
       };
-
       el('stepsContainer').appendChild(wrap);
       renumberSteps();
     }
@@ -228,10 +227,11 @@
       const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jspdfNS.jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210, marginX = 19, marginY = 25;
-      const contentWidth = pageWidth - marginX * 2;
+      const pageWidth = 210, pageHeight = 297;
+      const margin = 10; // smaller margin for full-page feel
+      const contentWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * contentWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', marginX, marginY, contentWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
       pdf.save(`sop-${Date.now()}.pdf`);
     }
 
