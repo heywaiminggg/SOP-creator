@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SOP Builder – Upload to Standard Format</title>
+  <title>SOP Builder – Upload to Standard Format (PDF Ready)</title>
+  <!-- Tailwind for quick styling -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Render DOM to canvas -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <!-- Create A4 PDFs in-browser -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     .a4 { aspect-ratio: 210 / 297; }
@@ -19,17 +22,18 @@
     /* Uniform media frame (4:3) for all step images/videos */
     .media-frame { position: relative; width: 100%; }
     .media-frame::before { content: ""; display: block; padding-top: 75%; } /* 4:3 ratio */
-    .media-frame > .media-fit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .media-fit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   </style>
 </head>
 <body class="min-h-screen bg-stone-100">
   <div class="max-w-7xl mx-auto p-6 lg:p-10">
     <header class="mb-6">
       <h1 class="text-2xl md:text-3xl font-bold text-stone-800">SOP Builder → Standardised Template</h1>
-      <p class="text-stone-600">Create SOP pages with steps. Each step has a title, media (image/video) + description text. Export the result as a PNG.</p>
+      <p class="text-stone-600">Create SOP pages with steps. Each step has a <strong>Step Title</strong>, media (image/video) + description text. Export as <strong>PDF (A4)</strong>.</p>
     </header>
 
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <!-- INPUT PANEL -->
       <form id="inputForm" class="bg-white rounded-2xl shadow-soft p-5 border border-stone-200">
         <h2 class="text-lg font-semibold mb-4">Input</h2>
 
@@ -52,6 +56,7 @@
           </label>
         </div>
 
+        <!-- Steps Builder -->
         <div class="mt-6">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-semibold">Steps</h3>
@@ -66,16 +71,20 @@
         </div>
       </form>
 
+      <!-- OUTPUT PANEL -->
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold">Output Template</h2>
           <button id="downloadBtn" class="px-4 py-2 rounded-xl bg-emerald-700 text-white hover:bg-emerald-600">Download PDF</button>
         </div>
 
+        <!-- SOP Card A4 -->
         <div id="card" class="a4 relative overflow-hidden rounded-2xl border border-stone-300 bg-[#f7f4ea] washi shadow-soft">
+          <!-- Top banner -->
           <div class="absolute inset-x-0 top-0 h-6 bg-stone-800"></div>
 
           <div class="p-6 md:p-8 space-y-5">
+            <!-- Header -->
             <div class="flex items-start gap-4">
               <div class="h-12 w-12 rounded-xl bg-stone-800"></div>
               <div class="flex-1">
@@ -88,25 +97,32 @@
               </div>
             </div>
 
+            <!-- Steps Rendered Here -->
             <div id="outSteps" class="space-y-6"></div>
           </div>
 
+          <!-- Bottom banner -->
           <div class="absolute inset-x-0 bottom-0 h-6 bg-stone-800"></div>
         </div>
       </div>
     </section>
 
     <footer class="mt-8 text-xs text-stone-500">
-      <p>Tip: Client-side MVP. For production, use Cloudinary/S3 for uploads and server-side PDF rendering.</p>
+      <p>Tip: Images are embedded losslessly into the PDF via a high-resolution canvas. For best performance, keep each image ≤ 10 MB and ≤ 2500px width.</p>
     </footer>
   </div>
 
   <script>
     const el = (id) => document.getElementById(id);
+
+    // Size advisory for client-side stability
+    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
+
+    // --- Step UI builder ---
     let stepCount = 0;
     const stepsContainer = el('stepsContainer');
 
-    function addStep(initialText = '') {
+    function addStep() {
       stepCount += 1;
       const wrap = document.createElement('div');
       wrap.className = 'step-block border border-stone-200 rounded-xl p-4';
@@ -146,19 +162,16 @@
         block.dataset.index = String(idx + 1);
         block.querySelector('.h-8.w-8').textContent = String(idx + 1);
         const titleInput = block.querySelector('.step-title');
-        if (!titleInput.value.startsWith('Step')) {
-          titleInput.placeholder = `Step ${idx + 1} Title`;
-        }
+        titleInput.placeholder = `Step ${idx + 1} Title`;
       });
       stepCount = blocks.length;
     }
 
-    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB per image recommended
     const readMedia = (file) => new Promise((resolve) => {
       if (!file) return resolve(null);
-      // Basic size guard. Videos are allowed but won't be embedded in PDF; images >10MB may cause memory issues.
+      // Guard mega images to avoid memory crashes
       if (!file.type.startsWith('video') && file.size > MAX_IMAGE_BYTES) {
-        alert(`Image "${file.name}" is ${(file.size/1024/1024).toFixed(1)} MB. For smooth PDF export, keep each image ≤ 10 MB or resize to ≤ 2000px wide.`);
+        alert(`Image "${file.name}" is ${(file.size/1024/1024).toFixed(1)} MB. For smooth PDF export, keep each image ≤ 10 MB or resize to ≤ 2500px.`);
       }
       const reader = new FileReader();
       reader.onload = (e) => resolve({ url: e.target.result, type: file.type.startsWith('video') ? 'video' : 'image' });
@@ -192,20 +205,20 @@
         const title = titleInput.value || `Step ${idx}`;
         const text = textInput.value || '';
 
-        const row = document.createElement('div');
-        row.className = 'space-y-2';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'space-y-2';
         const header = document.createElement('h4');
         header.className = 'font-semibold text-stone-800';
         header.textContent = title;
-        row.appendChild(header);
+        wrapper.appendChild(header);
 
-        const inner = document.createElement('div');
-        inner.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-start';
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-1 md:grid-cols-12 gap-4 items-start';
 
         const num = document.createElement('div');
         num.className = 'md:col-span-1';
         num.innerHTML = `<div class='h-8 w-8 flex items-center justify-center rounded-full bg-stone-800 text-white font-bold'>${idx}</div>`;
-        inner.appendChild(num);
+        row.appendChild(num);
 
         const mediaCol = document.createElement('div');
         mediaCol.className = 'md:col-span-4';
@@ -218,7 +231,7 @@
             mediaWrap.appendChild(v);
           } else {
             const img = document.createElement('img');
-            img.src = media.url; img.alt = title || `Step ${idx}`; img.className = 'media-fit';
+            img.src = media.url; img.alt = title; img.className = 'media-fit';
             mediaWrap.appendChild(img);
           }
         } else {
@@ -226,7 +239,7 @@
           mediaWrap.textContent = 'No media';
         }
         mediaCol.appendChild(mediaWrap);
-        inner.appendChild(mediaCol);
+        row.appendChild(mediaCol);
 
         const textCol = document.createElement('div');
         textCol.className = 'md:col-span-7';
@@ -234,11 +247,29 @@
         textBox.className = 'bg-white/70 rounded-2xl p-4 border border-stone-200';
         textBox.textContent = text || '—';
         textCol.appendChild(textBox);
-        inner.appendChild(textCol);
+        row.appendChild(textCol);
 
-        row.appendChild(inner);
-        outSteps.appendChild(row);
+        wrapper.appendChild(row);
+        outSteps.appendChild(wrapper);
       }
+    }
+
+    async function downloadPDF() {
+      // Guard for jsPDF presence to avoid breaking other features
+      const jspdfNS = window.jspdf;
+      if (!jspdfNS || !jspdfNS.jsPDF) {
+        alert('PDF library failed to load. Check network or try again.');
+        return;
+      }
+      const node = el('card');
+      // High scale = sharper, larger file. PNG is lossless (no extra compression).
+      const canvas = await html2canvas(node, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jspdfNS.jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+      pdf.save(`sop-${Date.now()}.pdf`);
     }
 
     function resetAll() {
@@ -253,25 +284,10 @@
       el('outSteps').innerHTML = '';
     }
 
-    async function downloadPDF() {
-      const node = el('card');
-      // Render at high scale to keep images crisp. PNG is lossless, so no extra compression.
-      const canvas = await html2canvas(node, { scale: 3, backgroundColor: '#ffffff', useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210;
-      const imgHeight = (canvas.height * pageWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
-      pdf.save(`sop-${Date.now()}.pdf`);
-    });
-      const link = document.createElement('a');
-      link.download = `sop-${Date.now()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
+      // Boot with one empty step
       addStep();
+      // Bind UI actions
       el('addStepBtn').addEventListener('click', () => addStep());
       el('applyBtn').addEventListener('click', applyToTemplate);
       el('resetBtn').addEventListener('click', resetAll);
