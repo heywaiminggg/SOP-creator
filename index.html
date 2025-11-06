@@ -3,57 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SOP Builder – Full Page Word Style</title>
+  <title>SOP Builder v2 – Save & Reload Templates</title>
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- html2canvas -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <!-- jsPDF -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
   <style>
-    body { background: #f3f3f3; }
+    body { background: #f3f3f3; font-family: Calibri, Arial, sans-serif; }
     .a4 {
-      width: 210mm;
-      min-height: 297mm;
-      background: #ffffff;
-      margin: 0 auto;
-      padding: 19mm; /* Word normal margins */
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-      font-family: "Calibri", Arial, sans-serif;
+      width: 210mm; min-height: 297mm;
+      background: #fff; margin: 0 auto;
+      padding: 19mm;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
       font-size: 12pt;
     }
     .media-frame { position: relative; width: 100%; }
-    .media-frame::before { content: ""; display: block; padding-top: 75%; } /* 4:3 ratio */
-    .media-fit { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .media-frame::before { content:""; display:block; padding-top:75%; }
+    .media-fit { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   </style>
 </head>
 
-<body class="min-h-screen p-6">
-  <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-    <!-- LEFT PANEL -->
+<body class="min-h-screen flex">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-white border-r border-stone-300 flex flex-col p-4">
+    <h2 class="text-lg font-semibold mb-3">📁 Saved Templates</h2>
+    <button id="saveTemplateBtn" class="mb-3 px-3 py-2 bg-stone-800 text-white rounded hover:bg-stone-700">💾 Save Current SOP</button>
+    <div id="savedList" class="flex-1 overflow-y-auto space-y-2 text-sm"></div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <!-- INPUT PANEL -->
     <form id="inputForm" onsubmit="return false;" class="bg-white rounded-lg shadow p-6 border border-stone-200">
       <h2 class="text-lg font-semibold mb-4">Input</h2>
 
       <label class="block mb-3">
         <span class="text-sm text-stone-600">Title</span>
-        <input id="title" type="text" class="mt-1 w-full rounded-md border-stone-300 focus:border-stone-400 focus:ring-stone-400" placeholder="e.g., Daily Clearing of Food Waste In Sump Pit" />
+        <input id="title" type="text" class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400" placeholder="e.g., Daily Clearing of Food Waste In Sump Pit" />
       </label>
 
       <label class="block mb-3">
         <span class="text-sm text-stone-600">Body (Description)</span>
-        <textarea id="body" rows="3" class="mt-1 w-full rounded-md border-stone-300 focus:border-stone-400 focus:ring-stone-400" placeholder="Overall description of the SOP..."></textarea>
+        <textarea id="body" rows="3" class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400" placeholder="Overall description of the SOP..."></textarea>
       </label>
 
       <div class="grid grid-cols-2 gap-3 mb-4">
         <label class="block">
           <span class="text-sm text-stone-600">Date of SOP</span>
-          <input id="date" type="date" class="mt-1 w-full rounded-md border-stone-300 focus:border-stone-400 focus:ring-stone-400" />
+          <input id="date" type="date" class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400" />
         </label>
         <label class="block">
           <span class="text-sm text-stone-600">Tags</span>
-          <input id="tags" type="text" class="mt-1 w-full rounded-md border-stone-300 focus:border-stone-400 focus:ring-stone-400" placeholder="Cleaning, Kitchen" />
+          <input id="tags" type="text" class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400" placeholder="Cleaning, Kitchen" />
         </label>
       </div>
 
@@ -69,13 +72,12 @@
       </div>
     </form>
 
-    <!-- RIGHT PANEL -->
+    <!-- OUTPUT PREVIEW -->
     <div class="space-y-3">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Preview (Word Style – Full Page)</h2>
+        <h2 class="text-lg font-semibold">Preview (Word Style)</h2>
         <button id="downloadBtn" class="px-4 py-2 rounded-md bg-emerald-700 text-white hover:bg-emerald-600">Download PDF</button>
       </div>
-
       <div id="card" class="a4">
         <div class="space-y-5">
           <div class="flex justify-between items-start">
@@ -85,14 +87,13 @@
             </div>
             <p id="outDate" class="text-[10pt] text-stone-700">—</p>
           </div>
-
           <div id="outTags" class="flex flex-wrap gap-1 text-[10pt] text-stone-600"></div>
           <hr class="border-t border-stone-300 my-3" />
           <div id="outSteps" class="space-y-5"></div>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
     const el = (id) => document.getElementById(id);
@@ -110,7 +111,7 @@
       stepCount = blocks.length;
     }
 
-    function addStep() {
+    function addStep(data = null) {
       stepCount += 1;
       const wrap = document.createElement('div');
       wrap.className = 'step-block border border-stone-200 rounded-md p-3';
@@ -118,33 +119,28 @@
         <div class="flex justify-between items-start mb-2">
           <div class="flex items-center gap-2">
             <div class="h-6 w-6 flex items-center justify-center rounded-full bg-stone-800 text-white text-xs font-bold">${stepCount}</div>
-            <input type="text" class="step-title border-b border-stone-300 text-sm px-2 py-1 w-48" placeholder="Step ${stepCount} Title" />
+            <input type="text" class="step-title border-b border-stone-300 text-sm px-2 py-1 w-48" placeholder="Step ${stepCount} Title" value="${data?.title || ''}" />
           </div>
           <button type="button" class="remove-step text-sm text-stone-600 hover:text-red-600">Remove</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <label class="block md:col-span-1">
             <span class="text-sm text-stone-600">Image/Video</span>
-            <input type="file" accept="image/*,video/*" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-stone-800 file:text-white" />
+            <input type="file" accept="image/*,video/*" class="mediaInput mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-stone-800 file:text-white" />
           </label>
           <label class="block md:col-span-2">
             <span class="text-sm text-stone-600">Description</span>
-            <textarea rows="3" class="mt-1 w-full rounded-md border-stone-300 focus:border-stone-400 text-sm" placeholder="Describe what to do..."></textarea>
+            <textarea rows="3" class="descInput mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400 text-sm" placeholder="Describe what to do...">${data?.desc || ''}</textarea>
           </label>
-        </div>
-      `;
-      wrap.querySelector('.remove-step').onclick = () => {
-        wrap.remove();
-        renumberSteps();
-      };
+        </div>`;
+      wrap.querySelector('.remove-step').onclick = () => { wrap.remove(); renumberSteps(); };
       el('stepsContainer').appendChild(wrap);
+      if (data?.media) wrap.dataset.media = data.media;
       renumberSteps();
     }
 
     const readMedia = (file) => new Promise((resolve) => {
       if (!file) return resolve(null);
-      if (!file.type.startsWith('video') && file.size > MAX_IMAGE_BYTES)
-        alert(`Image "${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. For smoother PDF export, keep ≤ 10MB.`);
       const reader = new FileReader();
       reader.onload = (e) => resolve({ url: e.target.result, type: file.type.startsWith('video') ? 'video' : 'image' });
       reader.readAsDataURL(file);
@@ -165,12 +161,14 @@
       const outSteps = el('outSteps');
       outSteps.innerHTML = '';
       const blocks = [...document.querySelectorAll('.step-block')];
+
       for (let i = 0; i < blocks.length; i++) {
         const idx = i + 1;
         const title = blocks[i].querySelector('.step-title').value || `Step ${idx}`;
-        const text = blocks[i].querySelector('textarea').value || '';
-        const file = blocks[i].querySelector('input[type="file"]').files[0];
-        const media = await readMedia(file);
+        const text = blocks[i].querySelector('.descInput').value || '';
+        let mediaData = blocks[i].dataset.media ? JSON.parse(blocks[i].dataset.media) : null;
+        const file = blocks[i].querySelector('.mediaInput').files[0];
+        if (file) mediaData = await readMedia(file);
 
         const wrapper = document.createElement('div');
         const header = document.createElement('h4');
@@ -183,27 +181,23 @@
 
         const num = document.createElement('div');
         num.className = 'md:col-span-1';
-        num.innerHTML = `<div class='h-6 w-6 flex items-center justify-center rounded-full bg-stone-800 text-white text-xs font-bold'>${idx}</div>`;
+        num.innerHTML = `<div class="h-6 w-6 flex items-center justify-center rounded-full bg-stone-800 text-white text-xs font-bold">${idx}</div>`;
         row.appendChild(num);
 
         const mediaCol = document.createElement('div');
         mediaCol.className = 'md:col-span-4';
         const mediaWrap = document.createElement('div');
         mediaWrap.className = 'rounded-md overflow-hidden border border-stone-300 bg-white media-frame';
-        if (media) {
-          if (media.type === 'video') {
+        if (mediaData) {
+          if (mediaData.type === 'video') {
             const v = document.createElement('video');
-            v.src = media.url; v.controls = true; v.className = 'media-fit';
+            v.src = mediaData.url; v.controls = true; v.className = 'media-fit';
             mediaWrap.appendChild(v);
           } else {
             const img = document.createElement('img');
-            img.src = media.url; img.alt = title; img.className = 'media-fit';
-            mediaWrap.appendChild(img);
+            img.src = mediaData.url; img.className = 'media-fit'; mediaWrap.appendChild(img);
           }
-        } else {
-          mediaWrap.textContent = 'No media';
-          mediaWrap.classList.add('h-40', 'flex', 'items-center', 'justify-center', 'text-stone-400');
-        }
+        } else { mediaWrap.textContent = 'No media'; mediaWrap.classList.add('h-40','flex','items-center','justify-center','text-stone-400'); }
         mediaCol.appendChild(mediaWrap);
         row.appendChild(mediaCol);
 
@@ -222,24 +216,22 @@
 
     async function downloadPDF() {
       const jspdfNS = window.jspdf;
-      if (!jspdfNS || !jspdfNS.jsPDF) return alert('PDF library not loaded. Try refreshing.');
+      if (!jspdfNS?.jsPDF) return alert('PDF library not loaded.');
       const node = el('card');
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#fff', useCORS: true });
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jspdfNS.jsPDF('p', 'mm', 'a4');
-      const pageWidth = 210, pageHeight = 297;
-      const margin = 10; // smaller margin for full-page feel
-      const contentWidth = pageWidth - margin * 2;
+      const pdf = new jspdfNS.jsPDF('p','mm','a4');
+      const margin = 10;
+      const pageWidth = 210, contentWidth = pageWidth - margin * 2;
       const imgHeight = (canvas.height * contentWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, imgHeight);
+      pdf.addImage(imgData,'PNG',margin,margin,contentWidth,imgHeight);
       pdf.save(`sop-${Date.now()}.pdf`);
     }
 
     function resetAll() {
       el('inputForm').reset();
       el('stepsContainer').innerHTML = '';
-      stepCount = 0;
-      addStep();
+      stepCount = 0; addStep();
       el('outTitle').textContent = 'SOP Title';
       el('outBodyLead').textContent = 'Short description of the SOP.';
       el('outDate').textContent = '—';
@@ -247,12 +239,85 @@
       el('outSteps').innerHTML = '';
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      addStep();
-      el('addStepBtn').onclick = addStep;
-      el('applyBtn').onclick = applyToTemplate;
-      el('resetBtn').onclick = resetAll;
-      el('downloadBtn').onclick = downloadPDF;
+    // ===== Local Storage System =====
+    function getSavedTemplates() { return JSON.parse(localStorage.getItem('sopTemplates') || '[]'); }
+    function setSavedTemplates(data) { localStorage.setItem('sopTemplates', JSON.stringify(data)); }
+
+    function refreshSidebar() {
+      const list = el('savedList');
+      list.innerHTML = '';
+      const data = getSavedTemplates();
+      if (!data.length) return list.innerHTML = '<p class="text-stone-500 text-sm">No templates saved.</p>';
+      data.forEach((t,i)=>{
+        const div = document.createElement('div');
+        div.className = 'p-2 border rounded flex justify-between items-center';
+        div.innerHTML = `<div><strong>${t.title}</strong><br><span class='text-xs text-stone-500'>${t.date}</span></div>`;
+        const btns = document.createElement('div');
+        btns.className='flex gap-1';
+        const loadBtn=document.createElement('button');
+        loadBtn.textContent='📝'; loadBtn.title='Load';
+        loadBtn.onclick=()=>loadTemplate(i);
+        const delBtn=document.createElement('button');
+        delBtn.textContent='🗑'; delBtn.title='Delete';
+        delBtn.onclick=()=>{if(confirm('Delete this template?')){data.splice(i,1);setSavedTemplates(data);refreshSidebar();}};
+        btns.append(loadBtn,delBtn);
+        div.appendChild(btns);
+        list.appendChild(div);
+      });
+    }
+
+    async function saveTemplate() {
+      const blocks=[...document.querySelectorAll('.step-block')];
+      const steps=[];
+      for(const b of blocks){
+        const file=b.querySelector('.mediaInput').files[0];
+        let mediaData=b.dataset.media?JSON.parse(b.dataset.media):null;
+        if(file) mediaData=await readMedia(file);
+        steps.push({
+          title:b.querySelector('.step-title').value,
+          desc:b.querySelector('.descInput').value,
+          media:mediaData?JSON.stringify(mediaData):null
+        });
+      }
+      const sop={
+        title:el('title').value||'Untitled SOP',
+        body:el('body').value||'',
+        date:el('date').value||'',
+        tags:el('tags').value||'',
+        steps
+      };
+      const data=getSavedTemplates();
+      data.push(sop);
+      setSavedTemplates(data);
+      refreshSidebar();
+      alert('Template saved!');
+    }
+
+    function loadTemplate(index){
+      const data=getSavedTemplates();
+      const sop=data[index];
+      if(!sop) return;
+      resetAll();
+      el('title').value=sop.title;
+      el('body').value=sop.body;
+      el('date').value=sop.date;
+      el('tags').value=sop.tags;
+      el('stepsContainer').innerHTML='';
+      stepCount=0;
+      sop.steps.forEach(st=>{
+        addStep({title:st.title,desc:st.desc,media:st.media});
+      });
+      applyToTemplate();
+    }
+
+    // ===== Init =====
+    document.addEventListener('DOMContentLoaded',()=>{
+      addStep(); refreshSidebar();
+      el('addStepBtn').onclick=addStep;
+      el('applyBtn').onclick=applyToTemplate;
+      el('resetBtn').onclick=resetAll;
+      el('downloadBtn').onclick=downloadPDF;
+      el('saveTemplateBtn').onclick=saveTemplate;
     });
   </script>
 </body>
