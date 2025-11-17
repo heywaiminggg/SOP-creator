@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SOP Builder v2 – Save & Reload Templates (Local Storage)</title>
+  <title>SOP Builder v2 – Save & Reload Templates (Local Storage + Translation)</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,89 +27,132 @@
   </style>
 </head>
 
-<body class="min-h-screen flex">
-  <!-- SIDEBAR -->
-  <aside class="w-64 bg-white border-r border-stone-300 flex flex-col p-4">
-    <h2 class="text-lg font-semibold mb-3">📁 Saved Templates</h2>
-    <button id="saveTemplateBtn" class="mb-3 px-3 py-2 bg-stone-800 text-white rounded hover:bg-stone-700">
-      💾 Save Current SOP
-    </button>
-    <div id="savedList" class="flex-1 overflow-y-auto space-y-2 text-sm"></div>
-  </aside>
+<body class="min-h-screen flex flex-col">
+  <div class="flex flex-1">
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-white border-r border-stone-300 flex flex-col p-4">
+      <h2 class="text-lg font-semibold mb-3">📁 Saved Templates</h2>
+      <button id="saveTemplateBtn" class="mb-3 px-3 py-2 bg-stone-800 text-white rounded hover:bg-stone-700">
+        💾 Save Current SOP
+      </button>
+      <div id="savedList" class="flex-1 overflow-y-auto space-y-2 text-sm"></div>
+    </aside>
 
-  <!-- MAIN AREA -->
-  <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-    <!-- INPUT PANEL -->
-    <form id="inputForm" onsubmit="return false;" class="bg-white rounded-lg shadow p-6 border border-stone-200">
-      <h2 class="text-lg font-semibold mb-4">Input</h2>
+    <!-- MAIN AREA -->
+    <main class="flex-1 p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <!-- INPUT PANEL -->
+      <form id="inputForm" onsubmit="return false;" class="bg-white rounded-lg shadow p-6 border border-stone-200">
+        <h2 class="text-lg font-semibold mb-4">Input</h2>
 
-      <label class="block mb-3">
-        <span class="text-sm text-stone-600">Title</span>
-        <input id="title" type="text" class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400"
-               placeholder="e.g., Daily Clearing of Food Waste In Sump Pit" />
-      </label>
-
-      <label class="block mb-3">
-        <span class="text-sm text-stone-600">Body (Description)</span>
-        <textarea id="body" rows="3"
-                  class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400"
-                  placeholder="Overall description of the SOP..."></textarea>
-      </label>
-
-      <div class="grid grid-cols-2 gap-3 mb-4">
-        <label class="block">
-          <span class="text-sm text-stone-600">Date of SOP</span>
-          <input id="date" type="date"
-                 class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400" />
+        <label class="block mb-3">
+          <span class="text-sm text-stone-600">Title</span>
+          <input id="title" type="text" class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400"
+                 placeholder="e.g., Daily Clearing of Food Waste In Sump Pit" />
         </label>
-        <label class="block">
-          <span class="text-sm text-stone-600">Tags</span>
-          <input id="tags" type="text"
-                 class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400"
-                 placeholder="Cleaning, Kitchen" />
+
+        <label class="block mb-3">
+          <span class="text-sm text-stone-600">Body (Description)</span>
+          <textarea id="body" rows="3"
+                    class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400"
+                    placeholder="Overall description of the SOP..."></textarea>
         </label>
-      </div>
 
-      <div class="flex items-center justify-between mb-2">
-        <h3 class="font-semibold">Steps</h3>
-        <button id="addStepBtn" type="button"
-                class="px-3 py-1.5 rounded-md bg-stone-800 text-white text-sm hover:bg-stone-700">+ Add Step</button>
-      </div>
-      <div id="stepsContainer" class="space-y-4 mb-4"></div>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <label class="block">
+            <span class="text-sm text-stone-600">Date of SOP</span>
+            <input id="date" type="date"
+                   class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400" />
+          </label>
+          <label class="block">
+            <span class="text-sm text-stone-600">Tags</span>
+            <input id="tags" type="text"
+                   class="mt-1 w-full rounded-md border-stone-300 focus:ring-stone-400"
+                   placeholder="Cleaning, Kitchen" />
+          </label>
+        </div>
 
-      <div class="flex flex-wrap gap-3">
-        <button id="applyBtn" type="button"
-                class="px-4 py-2 rounded-md bg-stone-800 text-white hover:bg-stone-700">Apply to Template</button>
-        <button id="resetBtn" type="button"
-                class="px-4 py-2 rounded-md border border-stone-300 text-stone-700 hover:bg-stone-50">Reset</button>
-      </div>
-    </form>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">Steps</h3>
+          <button id="addStepBtn" type="button"
+                  class="px-3 py-1.5 rounded-md bg-stone-800 text-white text-sm hover:bg-stone-700">+ Add Step</button>
+        </div>
+        <div id="stepsContainer" class="space-y-4 mb-4"></div>
 
-    <!-- PREVIEW PANEL -->
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold">Preview (Word Style)</h2>
-        <button id="downloadBtn" class="px-4 py-2 rounded-md bg-emerald-700 text-white hover:bg-emerald-600">
-          Download PDF
-        </button>
-      </div>
+        <div class="flex flex-wrap gap-3">
+          <button id="applyBtn" type="button"
+                  class="px-4 py-2 rounded-md bg-stone-800 text-white hover:bg-stone-700">Apply to Template</button>
+          <button id="resetBtn" type="button"
+                  class="px-4 py-2 rounded-md border border-stone-300 text-stone-700 hover:bg-stone-50">Reset</button>
+        </div>
+      </form>
 
-      <div id="card" class="a4">
-        <div class="space-y-5">
-          <div class="flex justify-between items-start">
-            <div>
-              <h1 id="outTitle" class="text-[16pt] font-bold text-stone-900">SOP Title</h1>
-              <p id="outBodyLead" class="text-[11pt] text-stone-800">Short description of the SOP.</p>
+      <!-- PREVIEW PANEL -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Preview (Word Style)</h2>
+          <button id="downloadBtn" class="px-4 py-2 rounded-md bg-emerald-700 text-white hover:bg-emerald-600">
+            Download PDF
+          </button>
+        </div>
+
+        <div id="card" class="a4">
+          <div class="space-y-5">
+            <div class="flex justify-between items-start">
+              <div>
+                <h1 id="outTitle" class="text-[16pt] font-bold text-stone-900">SOP Title</h1>
+                <p id="outBodyLead" class="text-[11pt] text-stone-800">Short description of the SOP.</p>
+              </div>
+              <p id="outDate" class="text-[10pt] text-stone-700">—</p>
             </div>
-            <p id="outDate" class="text-[10pt] text-stone-700">—</p>
+            <div id="outTags" class="flex flex-wrap gap-1 text-[10pt] text-stone-600"></div>
+            <hr class="border-t border-stone-300 my-3" />
+            <div id="outSteps" class="space-y-5"></div>
           </div>
-          <div id="outTags" class="flex flex-wrap gap-1 text-[10pt] text-stone-600"></div>
-          <hr class="border-t border-stone-300 my-3" />
-          <div id="outSteps" class="space-y-5"></div>
         </div>
       </div>
+    </main>
+  </div>
+
+  <!-- TRANSLATION PANEL AT BOTTOM -->
+  <section class="w-full px-6 pb-8">
+    <div class="max-w-5xl mx-auto bg-white rounded-lg shadow border border-stone-200 p-6 mt-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-semibold">🌍 Translation Tool</h2>
+          <p class="text-xs text-stone-500">
+            Translate the current SOP into another language. Original content will not be changed.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="text-sm text-stone-700 flex items-center gap-2">
+            <span>Target Language:</span>
+            <select id="targetLanguage" class="rounded-md border-stone-300 text-sm">
+              <option value="en">English</option>
+              <option value="zh">Chinese</option>
+              <option value="my">Burmese</option>
+              <option value="vi">Vietnamese</option>
+              <option value="ms">Malay</option>
+              <option value="ta">Tamil</option>
+            </select>
+          </label>
+          <button id="translateBtn" type="button"
+                  class="px-3 py-1.5 rounded-md bg-stone-800 text-white text-sm hover:bg-stone-700">
+            Translate SOP
+          </button>
+        </div>
+      </div>
+
+      <div id="translationStatus" class="text-xs text-stone-500 mb-2"></div>
+
+      <!-- Word-style formatted translated output -->
+      <div id="translationOutput"
+           class="border border-stone-200 rounded-md p-4 min-h-[120px] bg-stone-50 text-[11pt] leading-relaxed">
+        <p class="text-stone-400 text-sm">
+          Translation result will appear here after you click “Translate SOP”.
+        </p>
+      </div>
     </div>
-  </main>
+  </section>
 
   <script>
     const el = (id) => document.getElementById(id);
@@ -170,17 +213,22 @@
       el('outTitle').textContent = el('title').value || 'Untitled SOP';
       el('outBodyLead').textContent = el('body').value || '';
       el('outDate').textContent = el('date').value ? new Date(el('date').value).toLocaleDateString() : '—';
+
       const tagsWrap = el('outTags');
       tagsWrap.innerHTML = '';
-      (el('tags').value || '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
-        const sp = document.createElement('span');
-        sp.textContent = `#${t}`;
-        tagsWrap.appendChild(sp);
-      });
+      (el('tags').value || '').split(',')
+        .map(t => t.trim())
+        .filter(Boolean)
+        .forEach(t => {
+          const sp = document.createElement('span');
+          sp.textContent = `#${t}`;
+          tagsWrap.appendChild(sp);
+        });
 
       const outSteps = el('outSteps');
       outSteps.innerHTML = '';
       const blocks = [...document.querySelectorAll('.step-block')];
+
       for (let i = 0; i < blocks.length; i++) {
         const idx = i + 1;
         const title = blocks[i].querySelector('.step-title').value || `Step ${idx}`;
@@ -188,32 +236,47 @@
         let mediaData = blocks[i].dataset.media ? JSON.parse(blocks[i].dataset.media) : null;
         const file = blocks[i].querySelector('.mediaInput').files[0];
         if (file) mediaData = await readMedia(file);
+
         const wrapper = document.createElement('div');
+
         const header = document.createElement('h4');
         header.className = 'font-semibold text-[11pt] text-stone-900';
         header.textContent = title;
         wrapper.appendChild(header);
+
         const row = document.createElement('div');
         row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 items-start mt-1';
+
         const num = document.createElement('div');
         num.className = 'md:col-span-1';
         num.innerHTML = `<div class="h-6 w-6 flex items-center justify-center rounded-full bg-stone-800 text-white text-xs font-bold">${idx}</div>`;
         row.appendChild(num);
+
         const mediaCol = document.createElement('div');
         mediaCol.className = 'md:col-span-4';
         const mediaWrap = document.createElement('div');
         mediaWrap.className = 'rounded-md overflow-hidden border border-stone-300 bg-white media-frame';
+
         if (mediaData) {
           if (mediaData.type === 'video') {
             const v = document.createElement('video');
-            v.src = mediaData.url; v.controls = true; v.className = 'media-fit'; mediaWrap.appendChild(v);
+            v.src = mediaData.url;
+            v.controls = true;
+            v.className = 'media-fit';
+            mediaWrap.appendChild(v);
           } else {
             const img = document.createElement('img');
-            img.src = mediaData.url; img.className = 'media-fit'; mediaWrap.appendChild(img);
+            img.src = mediaData.url;
+            img.className = 'media-fit';
+            mediaWrap.appendChild(img);
           }
-        } else { mediaWrap.textContent = 'No media'; mediaWrap.classList.add('h-40','flex','items-center','justify-center','text-stone-400'); }
+        } else {
+          mediaWrap.textContent = 'No media';
+          mediaWrap.classList.add('h-40', 'flex', 'items-center', 'justify-center', 'text-stone-400');
+        }
         mediaCol.appendChild(mediaWrap);
         row.appendChild(mediaCol);
+
         const textCol = document.createElement('div');
         textCol.className = 'md:col-span-7';
         const textBox = document.createElement('div');
@@ -221,6 +284,7 @@
         textBox.textContent = text || '—';
         textCol.appendChild(textBox);
         row.appendChild(textCol);
+
         wrapper.appendChild(row);
         outSteps.appendChild(wrapper);
       }
@@ -249,6 +313,11 @@
       el('outDate').textContent = '—';
       el('outTags').innerHTML = '';
       el('outSteps').innerHTML = '';
+
+      // clear translation output as well
+      el('translationOutput').innerHTML =
+        '<p class="text-stone-400 text-sm">Translation result will appear here after you click “Translate SOP”.</p>';
+      el('translationStatus').textContent = '';
     }
 
     // === Local Storage ===
@@ -285,19 +354,197 @@
         const file=b.querySelector('.mediaInput').files[0];
         let mediaData=b.dataset.media?JSON.parse(b.dataset.media):null;
         if(file)mediaData=await readMedia(file);
-        steps.push({title:b.querySelector('.step-title').value,desc:b.querySelector('.descInput').value,media:mediaData?JSON.stringify(mediaData):null});
+        steps.push({
+          title:b.querySelector('.step-title').value,
+          desc:b.querySelector('.descInput').value,
+          media:mediaData?JSON.stringify(mediaData):null
+        });
       }
-      const sop={title:el('title').value||'Untitled SOP',body:el('body').value||'',date:el('date').value||'',tags:el('tags').value||'',steps};
+      const sop={
+        title:el('title').value||'Untitled SOP',
+        body:el('body').value||'',
+        date:el('date').value||'',
+        tags:el('tags').value||'',
+        steps
+      };
       const data=getSavedTemplates();
       data.push(sop);setSavedTemplates(data);refreshSidebar();alert('Template saved!');
     }
 
     function loadTemplate(index){
       const data=getSavedTemplates();const sop=data[index];if(!sop)return;
-      resetAll();el('title').value=sop.title;el('body').value=sop.body;el('date').value=sop.date;el('tags').value=sop.tags;
+      resetAll();
+      el('title').value=sop.title;el('body').value=sop.body;el('date').value=sop.date;el('tags').value=sop.tags;
       el('stepsContainer').innerHTML='';stepCount=0;
       sop.steps.forEach(st=>addStep({title:st.title,desc:st.desc,media:st.media}));
       applyToTemplate();
+    }
+
+    // === Translation (using LibreTranslate) ===
+    async function translateText(text, targetLang){
+      if(!text) return '';
+      // NOTE: If this endpoint fails (CORS / quota), point to your own LibreTranslate server.
+      const res = await fetch('https://libretranslate.com/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          q: text,
+          source: 'auto',
+          target: targetLang,
+          format: 'text'
+        })
+      });
+      if(!res.ok){
+        throw new Error('Translation request failed');
+      }
+      const data = await res.json();
+      return data.translatedText || text;
+    }
+
+    async function translateSOP(){
+      const btn = el('translateBtn');
+      const statusEl = el('translationStatus');
+      const out = el('translationOutput');
+      const target = el('targetLanguage').value;
+
+      const langNames = {
+        en: 'English',
+        zh: 'Chinese',
+        my: 'Burmese',
+        vi: 'Vietnamese',
+        ms: 'Malay',
+        ta: 'Tamil'
+      };
+
+      btn.disabled = true;
+      btn.classList.add('opacity-60','cursor-not-allowed');
+      statusEl.textContent = 'Translating SOP... This may take a few seconds.';
+      out.innerHTML = '<p class="text-sm text-stone-500">Translating...</p>';
+
+      try {
+        const title = el('title').value || 'Untitled SOP';
+        const body = el('body').value || '';
+        const date = el('date').value ? new Date(el('date').value).toLocaleDateString() : '';
+        const tags = el('tags').value || '';
+        const blocks = [...document.querySelectorAll('.step-block')];
+
+        const items = [];
+
+        items.push({key:'title', label:'Title', original:title});
+        items.push({key:'body', label:'Description', original:body});
+        if(date) items.push({key:'date', label:'Date', original:date});
+        if(tags) items.push({key:'tags', label:'Tags', original:tags});
+
+        blocks.forEach((b, idx) => {
+          const stepTitle = b.querySelector('.step-title').value || `Step ${idx+1}`;
+          const stepDesc = b.querySelector('.descInput').value || '';
+          items.push({
+            key:`stepTitle${idx}`,
+            kind:'stepTitle',
+            stepIndex: idx+1,
+            original: stepTitle
+          });
+          if(stepDesc){
+            items.push({
+              key:`stepDesc${idx}`,
+              kind:'stepDesc',
+              stepIndex: idx+1,
+              original: stepDesc
+            });
+          }
+        });
+
+        const translations = await Promise.all(items.map(it => translateText(it.original, target)));
+        items.forEach((it, i) => { it.translated = translations[i]; });
+
+        // Build formatted layout (Word-style)
+        out.innerHTML = '';
+        const header = document.createElement('div');
+        header.className = 'mb-3';
+        header.innerHTML = `
+          <h3 class="text-[13pt] font-semibold text-stone-900">Translated SOP</h3>
+          <p class="text-xs text-stone-500">Language: ${langNames[target] || target}</p>
+        `;
+        out.appendChild(header);
+
+        const titleItem = items.find(i => i.key === 'title');
+        if(titleItem){
+          const h = document.createElement('h4');
+          h.className = 'text-[12pt] font-bold text-stone-900';
+          h.textContent = titleItem.translated;
+          out.appendChild(h);
+        }
+
+        const bodyItem = items.find(i => i.key === 'body');
+        if(bodyItem){
+          const p = document.createElement('p');
+          p.className = 'mt-1 text-[11pt] text-stone-800';
+          p.textContent = bodyItem.translated;
+          out.appendChild(p);
+        }
+
+        const metaWrap = document.createElement('div');
+        metaWrap.className = 'mt-2 space-y-1 text-[9pt] text-stone-600';
+
+        const dateItem = items.find(i => i.key === 'date');
+        if(dateItem){
+          const p = document.createElement('p');
+          p.textContent = dateItem.translated;
+          metaWrap.appendChild(p);
+        }
+
+        const tagsItem = items.find(i => i.key === 'tags');
+        if(tagsItem){
+          const p = document.createElement('p');
+          p.textContent = tagsItem.translated;
+          metaWrap.appendChild(p);
+        }
+
+        if(metaWrap.childNodes.length){
+          out.appendChild(metaWrap);
+        }
+
+        const hr = document.createElement('hr');
+        hr.className = 'my-3 border-stone-300';
+        out.appendChild(hr);
+
+        const stepsWrap = document.createElement('div');
+        stepsWrap.className = 'space-y-3';
+
+        const totalSteps = blocks.length;
+        for(let i=0;i<totalSteps;i++){
+          const tItem = items.find(it => it.kind === 'stepTitle' && it.stepIndex === i+1);
+          const dItem = items.find(it => it.kind === 'stepDesc' && it.stepIndex === i+1);
+          if(!tItem && !dItem) continue;
+
+          const block = document.createElement('div');
+          block.className = 'space-y-1';
+
+          const h = document.createElement('h5');
+          h.className = 'font-semibold text-[11pt] text-stone-900';
+          h.textContent = `${i+1}. ${tItem ? tItem.translated : ''}`;
+          block.appendChild(h);
+
+          if(dItem){
+            const p = document.createElement('p');
+            p.className = 'text-[11pt] text-stone-800';
+            p.textContent = dItem.translated;
+            block.appendChild(p);
+          }
+
+          stepsWrap.appendChild(block);
+        }
+
+        out.appendChild(stepsWrap);
+        statusEl.textContent = 'Translation complete.';
+      } catch(err) {
+        console.error(err);
+        statusEl.textContent = 'Failed to translate. You may need to configure the translation server URL.';
+        out.innerHTML = '<p class="text-sm text-red-600">Error while translating. Please try again.</p>';
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60','cursor-not-allowed');
+      }
     }
 
     document.addEventListener('DOMContentLoaded',()=>{
@@ -307,6 +554,7 @@
       el('resetBtn').onclick=resetAll;
       el('downloadBtn').onclick=downloadPDF;
       el('saveTemplateBtn').onclick=saveTemplate;
+      el('translateBtn').onclick=translateSOP;
     });
   </script>
 </body>
