@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SOP Builder – With Input Translation Controls</title>
+  <title>SOP Builder – Input Translation Controls (Working Version)</title>
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -87,7 +87,6 @@
 
       <div id="stepsContainer" class="space-y-4 mb-4"></div>
 
-      <!-- Apply / Reset row -->
       <div class="flex flex-wrap gap-3 mb-4">
         <button id="applyBtn" type="button"
           class="px-4 py-2 rounded-md bg-stone-800 text-white hover:bg-stone-700">
@@ -100,15 +99,17 @@
         </button>
       </div>
 
-      <!-- TRANSLATION CONTROLS ROW (Option C + S2 + F2) -->
+      <!-- TRANSLATION CONTROLS -->
       <div class="border-t border-stone-200 pt-3 mt-2 space-y-2">
         <p class="text-sm text-stone-700 font-medium">Translate SOP</p>
+
         <div class="flex flex-wrap items-center gap-2 text-sm">
           <span>From</span>
           <select id="sourceLanguage"
             class="rounded-md border-stone-300 px-2 py-1">
             <option value="en">English</option>
-            <option value="zh">Chinese</option>
+            <option value="zh-CN">Chinese (Simplified)</option>
+            <option value="zh-TW">Chinese (Traditional)</option>
             <option value="my">Burmese</option>
             <option value="vi">Vietnamese</option>
             <option value="ms">Malay</option>
@@ -118,7 +119,8 @@
           <span>to</span>
           <select id="targetLanguage"
             class="rounded-md border-stone-300 px-2 py-1">
-            <option value="zh">Chinese</option>
+            <option value="zh-CN">Chinese (Simplified)</option>
+            <option value="zh-TW">Chinese (Traditional)</option>
             <option value="en">English</option>
             <option value="my">Burmese</option>
             <option value="vi">Vietnamese</option>
@@ -131,8 +133,9 @@
             Translate
           </button>
         </div>
+
         <p class="text-[11px] text-stone-500">
-          * Original text remains in English (or as typed). Translation appears in the preview area as a separate copy.
+          * Original text remains unchanged. Translated copy appears on the right.
         </p>
       </div>
     </form>
@@ -167,7 +170,7 @@
         </div>
       </div>
 
-      <!-- TRANSLATION OUTPUT CARD (same width as A4) -->
+      <!-- TRANSLATION OUTPUT PANEL -->
       <div class="w-[210mm] mx-auto bg-white rounded-lg shadow p-6 border border-stone-200">
         <div class="flex items-center justify-between mb-2">
           <h2 class="text-lg font-semibold">🌍 Translated SOP</h2>
@@ -175,6 +178,7 @@
             No translation yet
           </span>
         </div>
+
         <div id="translationStatus" class="text-xs text-stone-500 mb-2"></div>
 
         <div id="translationOutput"
@@ -184,24 +188,24 @@
           </p>
         </div>
       </div>
+
     </div>
   </main>
 
 <script>
-/* -------------------------- UTILITY -------------------------- */
 const el = (id) => document.getElementById(id);
 let stepCount = 0;
 
+/* ---------------- STEP MANAGEMENT ------------------- */
 function renumberSteps() {
   const blocks = [...document.querySelectorAll('.step-block')];
-  blocks.forEach((block, idx) => {
+  blocks.forEach((block, i) => {
     const badge = block.querySelector('.step-number');
-    if (badge) badge.textContent = idx + 1;
+    if (badge) badge.textContent = i + 1;
   });
   stepCount = blocks.length;
 }
 
-/* -------------------------- STEP HANDLING -------------------------- */
 function addStep(data = null) {
   stepCount++;
 
@@ -252,14 +256,7 @@ function addStep(data = null) {
   renumberSteps();
 }
 
-const readMedia = (file) => new Promise((resolve) => {
-  if (!file) return resolve(null);
-  const reader = new FileReader();
-  reader.onload = (e) => resolve({ url: e.target.result, type: file.type.startsWith('video') ? 'video' : 'image' });
-  reader.readAsDataURL(file);
-});
-
-/* -------------------------- PREVIEW RENDER -------------------------- */
+/* ---------- PREVIEW RENDERING ------------- */
 async function applyToTemplate() {
   el('outTitle').textContent = el('title').value || 'Untitled SOP';
   el('outBodyLead').textContent = el('body').value || '';
@@ -283,8 +280,8 @@ async function applyToTemplate() {
   const blocks = [...document.querySelectorAll('.step-block')];
   for (let i = 0; i < blocks.length; i++) {
     const idx = i + 1;
-    const stepBlock = document.createElement('div');
 
+    const stepBlock = document.createElement('div');
     const title = blocks[i].querySelector('.step-title').value || `Step ${idx}`;
     const desc = blocks[i].querySelector('.descInput').value || '';
 
@@ -296,7 +293,6 @@ async function applyToTemplate() {
     const grid = document.createElement('div');
     grid.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 items-start mt-1';
 
-    // Number
     const numCol = document.createElement('div');
     numCol.className = 'md:col-span-1';
     numCol.innerHTML = `
@@ -305,7 +301,6 @@ async function applyToTemplate() {
       </div>`;
     grid.appendChild(numCol);
 
-    // Media
     const mediaWrap = document.createElement('div');
     mediaWrap.className = 'md:col-span-4';
     const mediaBox = document.createElement('div');
@@ -313,7 +308,16 @@ async function applyToTemplate() {
 
     let mediaData = blocks[i].dataset.media ? JSON.parse(blocks[i].dataset.media) : null;
     const file = blocks[i].querySelector('.mediaInput').files[0];
-    if (file) mediaData = await readMedia(file);
+    if (file) {
+      const reader = new FileReader();
+      mediaData = await new Promise((resolve) => {
+        reader.onload = (e) => resolve({
+          url: e.target.result,
+          type: file.type.startsWith('video') ? 'video' : 'image'
+        });
+        reader.readAsDataURL(file);
+      });
+    }
 
     if (mediaData) {
       if (mediaData.type === 'video') {
@@ -334,10 +338,10 @@ async function applyToTemplate() {
         'h-40', 'flex', 'items-center', 'justify-center', 'text-stone-400'
       );
     }
+
     mediaWrap.appendChild(mediaBox);
     grid.appendChild(mediaWrap);
 
-    // Description
     const textCol = document.createElement('div');
     textCol.className = 'md:col-span-7';
     const textBox = document.createElement('div');
@@ -351,37 +355,25 @@ async function applyToTemplate() {
   }
 }
 
-/* -------------------------- TRANSLATION -------------------------- */
+/* --------------- TRANSLATION ---------------- */
 const langNames = {
-  en: 'English',
-  zh: 'Chinese',
-  my: 'Burmese',
-  vi: 'Vietnamese',
-  ms: 'Malay',
-  ta: 'Tamil'
+  "en": "English",
+  "zh-CN": "Chinese (Simplified)",
+  "zh-TW": "Chinese (Traditional)",
+  "my": "Burmese",
+  "vi": "Vietnamese",
+  "ms": "Malay",
+  "ta": "Tamil"
 };
 
 async function translateText(text, source, target) {
-  if (!text.trim()) return '';
-  // If source is English, we secretly use auto-detect to be more forgiving
-  const sourceForApi = source === 'en' ? 'auto' : source;
+  if (!text.trim()) return "";
 
-  const res = await fetch('https://translate.astian.org/translate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      q: text,
-      source: sourceForApi,
-      target: target,
-      format: 'text'
-    })
-  });
-
-  if (!res.ok) {
-    throw new Error('Translation request failed');
-  }
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${source}|${target}`;
+  const res = await fetch(url);
   const data = await res.json();
-  return data.translatedText || text;
+
+  return data.responseData.translatedText || text;
 }
 
 async function translateSOP() {
@@ -394,154 +386,85 @@ async function translateSOP() {
   const targetLang = el('targetLanguage').value;
 
   btn.disabled = true;
-  btn.classList.add('opacity-50', 'cursor-not-allowed');
-  status.textContent = 'Translating… please wait.';
-  out.innerHTML = '<p class="text-sm text-stone-500">Translating…</p>';
+  status.textContent = "Translating… please wait.";
+  out.innerHTML = "<p class='text-sm text-stone-500'>Translating…</p>";
 
   try {
-    const items = [];
-    const title = el('title').value || 'Untitled SOP';
-    const body = el('body').value || '';
-    const date = el('date').value ? new Date(el('date').value).toLocaleDateString() : '';
-    const tags = el('tags').value || '';
-
-    items.push({ key: 'title', original: title });
-    items.push({ key: 'body', original: body });
-    if (date) items.push({ key: 'date', original: date });
-    if (tags) items.push({ key: 'tags', original: tags });
+    const title = el('title').value;
+    const body = el('body').value;
+    const date = el('date').value ? new Date(el('date').value).toLocaleDateString() : "";
+    const tags = el('tags').value;
 
     const blocks = [...document.querySelectorAll('.step-block')];
-    blocks.forEach((b, i) => {
-      const st = b.querySelector('.step-title').value || `Step ${i + 1}`;
-      const sd = b.querySelector('.descInput').value || '';
-      items.push({ key: `t${i}`, kind: 'stepTitle', index: i + 1, original: st });
-      items.push({ key: `d${i}`, kind: 'stepDesc', index: i + 1, original: sd });
-    });
 
-    const translatedTexts = await Promise.all(
-      items.map(it => translateText(it.original, sourceLang, targetLang))
-    );
-    items.forEach((it, i) => it.translated = translatedTexts[i]);
+    const translated = {
+      title: await translateText(title, sourceLang, targetLang),
+      body: await translateText(body, sourceLang, targetLang),
+      date: await translateText(date, sourceLang, targetLang),
+      tags: await translateText(tags, sourceLang, targetLang),
+      steps: []
+    };
 
-    // Build formatted translated output
-    out.innerHTML = '';
+    for (let i = 0; i < blocks.length; i++) {
+      const st = blocks[i].querySelector('.step-title').value;
+      const sd = blocks[i].querySelector('.descInput').value;
 
-    const header = document.createElement('div');
-    header.className = 'mb-2';
-    header.innerHTML = `
+      translated.steps.push({
+        title: await translateText(st, sourceLang, targetLang),
+        desc: await translateText(sd, sourceLang, targetLang)
+      });
+    }
+
+    /* Build UI */
+    out.innerHTML = `
       <h3 class="text-[13pt] font-semibold">Translated SOP</h3>
-      <p class="text-xs text-stone-500">
-        Language: ${langNames[targetLang] || targetLang}
-      </p>
+      <p class="text-xs text-stone-500 mb-2">Language: ${langNames[targetLang]}</p>
+
+      <h4 class="text-[12pt] font-bold">${translated.title}</h4>
+      <p class="mt-1">${translated.body}</p>
+      <p class="text-[9pt] mt-1">${translated.date}</p>
+      <p class="text-[9pt]">${translated.tags}</p>
+
+      <hr class="my-3 border-stone-300">
     `;
-    out.appendChild(header);
 
-    const titleItem = items.find(i => i.key === 'title');
-    if (titleItem) {
-      const h = document.createElement('h4');
-      h.className = 'text-[12pt] font-bold text-stone-900';
-      h.textContent = titleItem.translated;
-      out.appendChild(h);
-    }
-
-    const bodyItem = items.find(i => i.key === 'body');
-    if (bodyItem) {
-      const p = document.createElement('p');
-      p.className = 'mt-1 text-[11pt] text-stone-800';
-      p.textContent = bodyItem.translated;
-      out.appendChild(p);
-    }
-
-    const metaWrap = document.createElement('div');
-    metaWrap.className = 'mt-2 space-y-1 text-[9pt] text-stone-600';
-
-    const dateItem = items.find(i => i.key === 'date');
-    if (dateItem) {
-      const p = document.createElement('p');
-      p.textContent = dateItem.translated;
-      metaWrap.appendChild(p);
-    }
-
-    const tagsItem = items.find(i => i.key === 'tags');
-    if (tagsItem) {
-      const p = document.createElement('p');
-      p.textContent = tagsItem.translated;
-      metaWrap.appendChild(p);
-    }
-
-    if (metaWrap.childNodes.length) {
-      out.appendChild(metaWrap);
-    }
-
-    const hr = document.createElement('hr');
-    hr.className = 'my-3 border-stone-300';
-    out.appendChild(hr);
-
-    const stepsWrap = document.createElement('div');
-    stepsWrap.className = 'space-y-2';
-
-    blocks.forEach((b, i) => {
-      const tItem = items.find(it => it.key === `t${i}`);
-      const dItem = items.find(it => it.key === `d${i}`);
-
-      const block = document.createElement('div');
-      block.className = 'space-y-1';
-
-      const h = document.createElement('h5');
-      h.className = 'font-semibold text-[11pt] text-stone-900';
-      h.textContent = `${i + 1}. ${tItem ? tItem.translated : ''}`;
-      block.appendChild(h);
-
-      if (dItem) {
-        const p = document.createElement('p');
-        p.className = 'text-[11pt] text-stone-800';
-        p.textContent = dItem.translated;
-        block.appendChild(p);
-      }
-
-      stepsWrap.appendChild(block);
+    translated.steps.forEach((s, i) => {
+      out.innerHTML += `
+        <div class="mb-2">
+          <h5 class="font-semibold text-[11pt]">${i + 1}. ${s.title}</h5>
+          <p class="text-[11pt]">${s.desc}</p>
+        </div>
+      `;
     });
 
-    out.appendChild(stepsWrap);
+    status.textContent = "Translation complete.";
+    langLabel.textContent = `Translated to ${langNames[targetLang]}`;
 
-    status.textContent = 'Translation complete.';
-    langLabel.textContent = `Translated to ${langNames[targetLang] || targetLang}`;
   } catch (err) {
-    console.error(err);
-    status.textContent = 'Translation failed. Please check your internet connection or try again.';
-    out.innerHTML = '<p class="text-sm text-red-600">Error while translating. Please try again.</p>';
-    el('translationLangLabel').textContent = 'Translation error';
-  } finally {
-    btn.disabled = false;
-    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+    out.innerHTML = `<p class="text-red-600">Error while translating. Try again.</p>`;
+    status.textContent = "Translation failed.";
   }
+
+  btn.disabled = false;
 }
 
-/* -------------------------- PDF DOWNLOAD -------------------------- */
+/* --------------- PDF --------------- */
 async function downloadPDF() {
   const jspdfNS = window.jspdf;
-  if (!jspdfNS?.jsPDF) return alert('PDF library not loaded.');
   const pdf = new jspdfNS.jsPDF('p', 'mm', 'a4');
 
-  const canvas = await html2canvas(el('card'), { scale: 2, backgroundColor: '#fff' });
-  const img = canvas.toDataURL('image/png');
-
-  pdf.addImage(img, 'PNG', 10, 10, 190, 0);
+  const canvas = await html2canvas(el('card'), { scale: 2 });
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, 0);
   pdf.save(`sop-${Date.now()}.pdf`);
 }
 
-/* -------------------------- RESET -------------------------- */
+/* --------------- RESET -------------- */
 function resetAll() {
   el('inputForm').reset();
   el('stepsContainer').innerHTML = '';
   stepCount = 0;
   addStep();
-
-  el('outTitle').textContent = 'SOP Title';
-  el('outBodyLead').textContent = 'Short description of the SOP.';
-  el('outSteps').innerHTML = '';
-  el('outDate').textContent = '—';
-  el('outTags').innerHTML = '';
+  applyToTemplate();
 
   el('translationOutput').innerHTML =
     '<p class="text-stone-400 text-sm">Translation result will appear here after you click “Translate”.</p>';
@@ -549,7 +472,7 @@ function resetAll() {
   el('translationLangLabel').textContent = 'No translation yet';
 }
 
-/* -------------------------- SAVE / LOAD -------------------------- */
+/* --------------- SAVE/LOAD -------------- */
 function getSavedTemplates() {
   return JSON.parse(localStorage.getItem('sopTemplates') || '[]');
 }
@@ -559,71 +482,46 @@ function setSavedTemplates(data) {
 
 function refreshSidebar() {
   const list = el('savedList');
-  list.innerHTML = '';
-
+  list.innerHTML = "";
   const data = getSavedTemplates();
+
   if (!data.length) {
-    list.innerHTML = '<p class="text-stone-500 text-sm">No templates saved.</p>';
+    list.innerHTML = "<p class='text-stone-500 text-sm'>No templates saved.</p>";
     return;
   }
 
   data.forEach((sop, i) => {
-    const item = document.createElement('div');
-    item.className = 'p-2 border rounded flex justify-between items-center';
+    const row = document.createElement("div");
+    row.className = "p-2 border rounded flex justify-between items-center";
 
-    item.innerHTML = `
+    row.innerHTML = `
       <div>
         <strong>${sop.title}</strong><br>
-        <span class="text-xs text-stone-500">${sop.date || ''}</span>
+        <span class="text-xs text-stone-500">${sop.date || ""}</span>
       </div>
     `;
 
-    const btns = document.createElement('div');
-    btns.className = 'flex gap-2';
+    const btns = document.createElement("div");
+    btns.className = "flex gap-2";
 
-    const loadBtn = document.createElement('button');
-    loadBtn.textContent = '📝';
-    loadBtn.onclick = () => loadTemplate(i);
+    const load = document.createElement("button");
+    load.textContent = "📝";
+    load.onclick = () => loadTemplate(i);
 
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '🗑';
-    delBtn.onclick = () => {
-      if (confirm('Delete this template?')) {
+    const del = document.createElement("button");
+    del.textContent = "🗑";
+    del.onclick = () => {
+      if (confirm("Delete?")) {
         data.splice(i, 1);
         setSavedTemplates(data);
         refreshSidebar();
       }
     };
 
-    btns.append(loadBtn, delBtn);
-    item.appendChild(btns);
-    list.appendChild(item);
+    btns.append(load, del);
+    row.appendChild(btns);
+    list.appendChild(row);
   });
-}
-
-function saveTemplate() {
-  const blocks = [...document.querySelectorAll('.step-block')];
-
-  const steps = blocks.map(b => ({
-    title: b.querySelector('.step-title').value,
-    desc: b.querySelector('.descInput').value,
-    media: b.dataset.media || null
-  }));
-
-  const sop = {
-    title: el('title').value || 'Untitled SOP',
-    body: el('body').value,
-    date: el('date').value,
-    tags: el('tags').value,
-    steps
-  };
-
-  const all = getSavedTemplates();
-  all.push(sop);
-  setSavedTemplates(all);
-  refreshSidebar();
-
-  alert('Template saved!');
 }
 
 function loadTemplate(i) {
@@ -632,21 +530,19 @@ function loadTemplate(i) {
   if (!sop) return;
 
   resetAll();
-
   el('title').value = sop.title;
   el('body').value = sop.body;
   el('date').value = sop.date;
   el('tags').value = sop.tags;
 
-  el('stepsContainer').innerHTML = '';
+  el('stepsContainer').innerHTML = "";
   stepCount = 0;
-  sop.steps.forEach(st => addStep(st));
 
+  sop.steps.forEach(st => addStep(st));
   applyToTemplate();
 }
 
-/* -------------------------- INIT -------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   addStep();
   refreshSidebar();
 
